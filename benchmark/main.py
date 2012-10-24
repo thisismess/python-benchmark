@@ -9,32 +9,37 @@ import time
 import platform
 import os
 import sys
+import inspect
 
 class BenchmarkProgram(object):
     
+    benchmarks = []
+
     def __init__(self, module="__main__", **kwargs):
         if isinstance(module, basestring):
             self.module = __import__(module)
-        
-        benchmarks = self.loadFromModule(self.module)
+        else:
+            self.module = module
+    
+
+    def run(self, *args, **kwargs):
+        if len(self.benchmarks) < 1:
+            self.benchmarks = self.loadFromModule(self.module)
         
         totalRuns = 0
         objects = []
-        for obj in benchmarks:
+        
+        for obj in self.benchmarks:
             obj = obj(**kwargs)
             obj.run()
             objects.append(obj)
             totalRuns += obj.getTotalRuns()
         
         title = 'Benchmark Report'
-        info = 'Each of the above %s runs were run in random, non-consecutive order by' % str(totalRuns)
-        info += os.linesep
-        info += '`benchmark` v' + __VERSION__ + ' (http://jspi.es/benchmark) with Python ' + platform.python_version()
-        info += os.linesep
-        info += '%s-%s-%s on %s' % (platform.system(), platform.release(), platform.machine(), time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())) + '.'
-        
+        info = 'Each of the above %s runs were run in random, non-consecutive order' % str(totalRuns)
         sys.stdout.write(self.printMarkdown(objects, title, info, **kwargs))
-    
+
+
     def printMarkdown(self, benchmarks, title, info, **kwargs):
         lines = ''
 
@@ -64,12 +69,14 @@ class BenchmarkProgram(object):
 
         return lines
         
-    def loadFromModule(self, module):
-        benchmarks = []
-        for name in dir(module):
+    def loadFromModule(self, module, exclude=()):
+        if isinstance(module, basestring):
+            module = __import__(module)
+        else:
+            module = module
+        for name, member in inspect.getmembers(module):
             obj = getattr(module, name)
-            if isinstance(obj, type) and issubclass(obj, Benchmark):
-                benchmarks.append(obj)
-        return benchmarks
+            if isinstance(obj, type) and issubclass(obj, Benchmark) and name not in exclude:
+                self.benchmarks.append(obj)
 
 main = BenchmarkProgram
