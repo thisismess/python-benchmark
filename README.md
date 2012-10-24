@@ -1,4 +1,4 @@
-python-benchmark
+Benchmark
 ================
 
 A fork of Jeffrey R. Spies benchmark suite.
